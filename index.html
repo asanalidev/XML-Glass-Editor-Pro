@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XML Glass Editor Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at 20% 20%, #0c192c 0%, #070d18 50%, #03060c 100%);
+        }
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+        .glass-panel {
+            background: rgba(13, 27, 48, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(56, 189, 248, 0.15);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        .glass-button {
+            background: rgba(14, 165, 233, 0.1);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-button:hover {
+            background: rgba(14, 165, 233, 0.25);
+            border-color: rgba(56, 189, 248, 0.6);
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(3, 6, 12, 0.5);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(56, 189, 248, 0.3);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(56, 189, 248, 0.6);
+        }
+    </style>
+</head>
+<body class="text-sky-100 h-screen flex flex-col overflow-hidden select-none">
+
+    <header class="glass-panel mx-4 mt-4 mb-2 rounded-2xl px-6 py-3 flex items-center justify-between z-20">
+        <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2">
+                <div class="w-3.5 h-3.5 rounded-full bg-rose-500 shadow-lg shadow-rose-500/50"></div>
+                <div class="w-3.5 h-3.5 rounded-full bg-amber-500 shadow-lg shadow-amber-500/50"></div>
+                <div class="w-3.5 h-3.5 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/50"></div>
+            </div>
+            <div class="h-5 w-[1px] bg-sky-500/20"></div>
+            <h1 class="font-bold text-base tracking-wide bg-gradient-to-r from-sky-300 via-cyan-200 to-blue-400 bg-clip-text text-transparent flex items-center space-x-2">
+                <i class="fa-solid fa-code text-cyan-400 mr-2"></i><span>XML GLASS EDITOR</span>
+            </h1>
+        </div>
+
+        <div class="flex items-center space-x-3">
+            <button onclick="triggerFileInput()" class="glass-button px-4 py-2 rounded-xl text-xs font-medium text-sky-200 flex items-center space-x-2">
+                <i class="fa-solid fa-folder-open text-cyan-400"></i>
+                <span>Открыть файл</span>
+            </button>
+            <button onclick="saveFile()" class="glass-button px-4 py-2 rounded-xl text-xs font-medium text-sky-200 flex items-center space-x-2">
+                <i class="fa-solid fa-download text-sky-400"></i>
+                <span>Сохранить</span>
+            </button>
+            <button onclick="formatXML()" class="glass-button px-4 py-2 rounded-xl text-xs font-medium text-sky-200 flex items-center space-x-2">
+                <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
+                <span>Формат</span>
+            </button>
+            <button onclick="validateXML()" class="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium px-4 py-2 rounded-xl text-xs flex items-center space-x-2 shadow-lg shadow-cyan-500/25 transition-all">
+                <i class="fa-solid fa-shield-halved"></i>
+                <span>Проверить</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Hidden File Input -->
+    <input type="file" id="file-selector" class="hidden" accept=".xml,.vbox,.csproj,.xsl,.xhtml,.html" onchange="handleFileOpen(event)">
+
+    <div class="flex-1 flex px-4 mb-4 space-x-4 overflow-hidden">
+        
+        <!-- Left Sidebar: Tree View & Templates -->
+        <aside class="w-72 glass-panel rounded-2xl flex flex-col overflow-hidden">
+            <div class="p-4 border-b border-sky-500/10 flex items-center justify-between text-xs font-semibold tracking-wider text-sky-300">
+                <span class="flex items-center space-x-2">
+                    <i class="fa-solid fa-sitemap text-cyan-400"></i>
+                    <span>СТРУКТУРА ДОКУМЕНТА</span>
+                </span>
+                <span id="file-badge" class="text-[10px] px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">XML</span>
+            </div>
+            
+            <div id="xml-tree-view" class="p-4 space-y-1 flex-1 overflow-y-auto code-font text-xs text-sky-100/90">
+                <div class="text-sky-400/50 italic">Проверьте документ для построения структуры...</div>
+            </div>
+
+            <div class="p-4 border-t border-sky-500/10 bg-sky-950/20">
+                <div class="text-[11px] font-semibold text-sky-300 mb-2">БЫСТРЫЕ ШАБЛОНЫ</div>
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="loadTemplate('catalog')" class="glass-button py-1.5 px-2 rounded-lg text-[10px] text-center text-sky-200">Каталог</button>
+                    <button onclick="loadTemplate('rss')" class="glass-button py-1.5 px-2 rounded-lg text-[10px] text-center text-sky-200">RSS</button>
+                    <button onclick="loadTemplate('config')" class="glass-button py-1.5 px-2 rounded-lg text-[10px] text-center text-sky-200">Конфиг</button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Center Main Editor and Console Area -->
+        <main class="flex-1 glass-panel rounded-2xl flex flex-col overflow-hidden relative">
+            
+            <!-- Editor Top File Bar -->
+            <div class="bg-sky-950/30 border-b border-sky-500/10 px-4 py-2.5 flex items-center justify-between">
+                <div class="flex items-center space-x-2 text-xs text-sky-200 font-medium">
+                    <i class="fa-brands fa-xml text-cyan-400"></i>
+                    <span id="active-filename">document.xml</span>
+                </div>
+                <div class="text-[11px] text-sky-400/60 flex items-center space-x-2">
+                    <i class="fa-solid fa-file-arrow-down text-sky-400"></i>
+                    <span>Поддерживаются .xml, .vbox, .csproj, .xsl, .html</span>
+                </div>
+            </div>
+
+            <!-- Editor Input Area with Line Numbers -->
+            <div class="flex-1 flex relative overflow-hidden" id="drop-zone">
+                <div id="line-numbers" class="w-12 bg-sky-950/20 text-sky-500/50 code-font text-xs py-4 select-none text-right pr-3 overflow-hidden leading-relaxed">
+                    1
+                </div>
+                <textarea id="xml-textarea" class="editor-textarea flex-1 bg-transparent text-sky-100 code-font text-xs p-4 resize-none focus:outline-none leading-relaxed whitespace-pre overflow-auto" spellcheck="false" placeholder="Введите XML или перетащите файл сюда..."><?xml version="1.0" encoding="UTF-8"?>
+<catalog>
+    <book id="bk101">
+        <title>Элегантный веб-дизайн</title>
+        <author>Алексей Смирнов</author>
+        <price>1999</price>
+        <publish_date>2026-06-01</publish_date>
+        <description>Руководство по современному созданию интерфейсов с эффектом glassmorphism.</description>
+    </book>
+</catalog></textarea>
+            </div>
+
+            <div class="h-36 bg-sky-950/40 border-t border-sky-500/10 flex flex-col">
+                <div class="px-4 py-1.5 border-b border-sky-500/10 flex items-center justify-between text-[11px] text-sky-300">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-terminal text-cyan-400"></i>
+                        <span class="font-semibold">РЕЗУЛЬТАТ ВАЛИДАЦИИ</span>
+                    </div>
+                    <button onclick="clearConsole()" class="text-sky-400/60 hover:text-sky-200 transition-colors">Очистить лог</button>
+                </div>
+                <div id="console-output" class="flex-1 p-3 code-font text-[11px] text-emerald-400 overflow-y-auto whitespace-pre-wrap">Редактор запущен. Готов к работе.</div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const textarea = document.getElementById('xml-textarea');
+        const lineNumbers = document.getElementById('line-numbers');
+        const consoleOutput = document.getElementById('console-output');
+        const treeView = document.getElementById('xml-tree-view');
+        const activeFilename = document.getElementById('active-filename');
+        const fileSelector = document.getElementById('file-selector');
+        const dropZone = document.getElementById('drop-zone');
+
+        let currentFileName = 'document.xml';
+
+        const templates = {
+            catalog: '<?xml version="1.0" encoding="UTF-8"?>\n<catalog>\n    <item id="1">\n        <name>Товар</name>\n        <price>500</price>\n    </item>\n</catalog>',
+            rss: '<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0">\n    <channel>\n        <title>Лента новостей</title>\n        <link>https://example.com</link>\n        <item>\n            <title>Новость интерфейсов</title>\n        </item>\n    </channel>\n</rss>',
+            config: '<?xml version="1.0" encoding="UTF-8"?>\n<configuration>\n    <settings>\n        <add key="theme" value="Blue Glass"/>\n    </settings>\n</configuration>'
+        };
+
+        function updateLines() {
+            const lines = textarea.value.split('\n').length;
+            let numbersHtml = '';
+            for (let i = 1; i <= lines; i++) {
+                numbersHtml += i + '<br>';
+            }
+            lineNumbers.innerHTML = numbersHtml;
+        }
+
+        function syncScroll() {
+            lineNumbers.scrollTop = textarea.scrollTop;
+        }
+
+        textarea.addEventListener('keydown', function(e) {
+            const start = this.selectionStart;
+            const end = this.selectionEnd;
+
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                this.value = this.value.substring(0, start) + '    ' + this.value.substring(end);
+                this.selectionStart = this.selectionEnd = start + 4;
+                updateEditorState();
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                const lines = this.value.substring(0, start).split('\n');
+                const currentLine = lines[lines.length - 1];
+                
+                const match = currentLine.match(/^(\s*)/);
+                let indent = match ? match[1] : '';
+                
+                const trimmed = currentLine.trim();
+                const isOpeningTag = trimmed.startsWith('<') && !trimmed.startsWith('</') && !trimmed.endsWith('/>') && !trimmed.includes('</');
+                
+                if (isOpeningTag) {
+                    indent += '    ';
+                }
+
+                const insertion = '\n' + indent;
+                this.value = this.value.substring(0, start) + insertion + this.value.substring(end);
+                this.selectionStart = this.selectionEnd = start + insertion.length;
+                updateEditorState();
+            }
+        });
+
+        textarea.addEventListener('input', updateEditorState);
+        textarea.addEventListener('scroll', syncScroll);
+
+        // Drag and Drop
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                readFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        function triggerFileInput() { fileSelector.click(); }
+        function handleFileOpen(event) {
+            if (event.target.files[0]) readFile(event.target.files[0]);
+            fileSelector.value = '';
+        }
+
+        function readFile(file) {
+            currentFileName = file.name;
+            activeFilename.innerText = currentFileName;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                textarea.value = e.target.result;
+                updateEditorState();
+                consoleOutput.className = "flex-1 p-3 code-font text-[11px] text-emerald-400 overflow-y-auto whitespace-pre-wrap";
+                consoleOutput.innerText = `Файл "${currentFileName}" успешно загружен.`;
+            };
+            reader.readAsText(file);
+        }
+
+        function updateEditorState() {
+            updateLines();
+            validateXML();
+        }
+
+        function validateXML() {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(textarea.value, "text/xml");
+            const parserError = xmlDoc.getElementsByTagName("parsererror");
+            
+            if (parserError.length > 0) {
+                consoleOutput.className = "flex-1 p-3 code-font text-[11px] text-rose-400 overflow-y-auto whitespace-pre-wrap";
+                consoleOutput.innerText = "[Ошибка XML]:\n" + parserError[0].textContent;
+                treeView.innerHTML = '<div class="text-rose-400/70 italic">Исправьте синтаксическую ошибку для отображения дерева.</div>';
+            } else {
+                consoleOutput.className = "flex-1 p-3 code-font text-[11px] text-emerald-400 overflow-y-auto whitespace-pre-wrap";
+                consoleOutput.innerText = `Документ корректен. Проверен: ${currentFileName}`;
+                if (xmlDoc.documentElement) {
+                    buildTree(xmlDoc.documentElement, treeView);
+                }
+            }
+        }
+
+        function buildTree(node, container) {
+            container.innerHTML = '';
+            function parseNode(el, parentEl) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'ml-3 border-l border-sky-500/20 pl-2 my-1';
+                
+                const title = document.createElement('div');
+                title.className = 'flex items-center space-x-1 text-cyan-300 font-medium';
+                title.innerHTML = `<i class="fa-solid fa-tag text-[9px] text-sky-400"></i><span>&lt;${el.nodeName}&gt;</span>`;
+                wrapper.appendChild(title);
+                
+                if (el.attributes.length > 0) {
+                    const attrs = document.createElement('div');
+                    attrs.className = 'text-amber-300 text-[10px] ml-4';
+                    let attrStr = '';
+                    for (let attr of el.attributes) { attrStr += `${attr.name}="${attr.value}" `; }
+                    attrs.innerText = `@ ${attrStr}`;
+                    wrapper.appendChild(attrs);
+                }
+
+                for (let child of el.children) { parseNode(child, wrapper); }
+
+                if (el.children.length === 0 && el.textContent.trim()) {
+                    const textVal = document.createElement('div');
+                    textVal.className = 'text-sky-200/80 text-[10px] ml-4 italic';
+                    textVal.innerText = el.textContent.trim();
+                    wrapper.appendChild(textVal);
+                }
+                parentEl.appendChild(wrapper);
+            }
+            parseNode(node, container);
+        }
+
+        function formatXML() {
+            try {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(textarea.value, "text/xml");
+                if (xmlDoc.getElementsByTagName("parsererror").length > 0) return;
+                
+                function format(node, level = 0) {
+                    let indent = "    ".repeat(level);
+                    let result = "";
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        result += indent + "<" + node.nodeName;
+                        for (let attr of node.attributes) { result += ` ${attr.name}="${attr.value}"`; }
+                        if (node.children.length === 0 && !node.textContent.trim()) {
+                            result += "/>\n";
+                        } else if (node.children.length === 0) {
+                            result += ">" + node.textContent.trim() + "</" + node.nodeName + ">\n";
+                        } else {
+                            result += ">\n";
+                            for (let child of node.children) { result += format(child, level + 1); }
+                            result += indent + "</" + node.nodeName + ">\n";
+                        }
+                    }
+                    return result;
+                }
+
+                let formatted = '<?xml version="1.0" encoding="UTF-8"?>\n';
+                if (xmlDoc.documentElement) { formatted += format(xmlDoc.documentElement); }
+                textarea.value = formatted.trim();
+                updateEditorState();
+            } catch (e) { console.error(e); }
+        }
+
+        function loadTemplate(type) {
+            if (templates[type]) {
+                textarea.value = templates[type];
+                currentFileName = type + '.xml';
+                activeFilename.innerText = currentFileName;
+                updateEditorState();
+            }
+        }
+
+        function saveFile() {
+            const blob = new Blob([textarea.value], { type: 'application/xml;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = currentFileName;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function clearConsole() {
+            consoleOutput.innerText = 'Лог очищен.\n';
+        }
+
+        window.onload = function() {
+            updateEditorState();
+        };
+    </script>
+</body>
+</html>
