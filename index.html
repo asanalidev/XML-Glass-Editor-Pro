@@ -349,15 +349,53 @@
             }
         }
 
-        function saveFile() {
-            const blob = new Blob([textarea.value], { type: 'application/xml;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = currentFileName;
-            a.click();
-            URL.revokeObjectURL(url);
+        async function saveFile() {
+            // Проверяем поддержку современного API «Сохранить как»
+            if ('showSaveFilePicker' in window) {
+                try {
+                    const options = {
+                        suggestedName: currentFileName,
+                        types: [{
+                            description: 'XML Files',
+                            accept: {
+                                'application/xml': ['.xml', '.vbox', '.csproj', '.xsl', '.xhtml', '.html']
+                            }
+                        }]
+            };
+            
+            // Вызываем системное диалоговое окно
+            const handle = await window.showSaveFilePicker(options);
+            const writable = await handle.createWritable();
+            
+            // Записываем текст из редактора в файл
+            await writable.write(textarea.value);
+            await writable.close();
+            
+            // Обновляем имя текущего файла на то, которое выбрал пользователь
+            currentFileName = handle.name;
+            activeFilename.innerText = currentFileName;
+            
+            consoleOutput.className = "flex-1 p-3 code-font text-[11px] text-emerald-400 overflow-y-auto whitespace-pre-wrap";
+            consoleOutput.innerText = `Файл успешно сохранен: ${currentFileName}`;
+            return;
+        } catch (err) {
+            // Если пользователь сам нажал «Отмена», просто выходим
+            if (err.name !== 'AbortError') {
+                console.error(err);
+            }
+            return;
         }
+    }
+
+    // Запасной вариант для браузеров без поддержки File System Access API (например, Firefox)
+    const blob = new Blob([textarea.value], { type: 'application/xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = currentFileName;
+    a.click();
+    URL.revokeObjectURL(url);
+}
 
         function clearConsole() {
             consoleOutput.innerText = 'Лог очищен.\n';
